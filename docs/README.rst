@@ -100,9 +100,19 @@ General
 |                       |         |          |                                  | to verify the BIG-IP                    |                |
 |                       |         |          |                                  | configuration.                          |                |
 +-----------------------+---------+----------+----------------------------------+-----------------------------------------+----------------+
+| vs-snat-pool-name     | string  | Optional | n/a                              | Name of the SNAT pool that all virtual  |                |
+|                       |         |          |                                  | servers will reference. If it is not    |                |
+|                       |         |          |                                  | set virtual servers will have source    |                |
+|                       |         |          |                                  | address translation of type automap     |                |
+|                       |         |          |                                  | configured                              |                |
++-----------------------+---------+----------+----------------------------------+-----------------------------------------+----------------+
 | http-listen-address   | string  | Optional | "0.0.0.0:8080"                   | Address to serve http based informations|                |
 |                       |         |          |                                  | e.g. (`/metrics` and `health`)          |                |
 +-----------------------+---------+----------+----------------------------------+-----------------------------------------+----------------+
+
+.. note::
+  Use the ``vs-snat-pool-name`` if you want virtual servers to reference a preconfigured SNAT pool by name in the Common partition on the BIG-IP device.
+  See `Overview of SNAT features`_ if you would like more details on this configuration option.
 
 .. _bigip configs:
 
