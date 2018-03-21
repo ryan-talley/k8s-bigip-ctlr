@@ -65,6 +65,9 @@ const peerCertRequired = "require"
 const peerCertIgnored = "ignore"
 const peerCertDefault = peerCertIgnored
 
+const defaultSourceAddrTranslation = "automap"
+const snatSourceAddrTranslation = "snat"
+
 func (v *Virtual) GetProfileCountByContext(context string) int {
 	// Valid values of context are 'clientside', serverside', and 'all'.
 	// 'all' does not mean all profiles, but profiles that can be used in
@@ -813,8 +816,20 @@ func setProfilesForMode(mode string, cfg *ResourceConfig) {
 	}
 }
 
+func setSourceAddrTranslation(snatPoolName string) SourceAddrTranslation {
+	if snatPoolName == "" {
+		return SourceAddrTranslation{
+			Type: defaultSourceAddrTranslation,
+		}
+	}
+	return SourceAddrTranslation{
+		Type: snatSourceAddrTranslation,
+		Pool: snatPoolName,
+	}
+}
+
 // Unmarshal an expected ConfigMap object
-func parseConfigMap(cm *v1.ConfigMap, schemaDBPath string) (*ResourceConfig, error) {
+func parseConfigMap(cm *v1.ConfigMap, schemaDBPath, snatPoolName string) (*ResourceConfig, error) {
 	var cfg ResourceConfig
 	var cfgMap ConfigMap
 
@@ -852,7 +867,7 @@ func parseConfigMap(cm *v1.ConfigMap, schemaDBPath string) (*ResourceConfig, err
 			}
 			if result.Valid() {
 				ns := cm.ObjectMeta.Namespace
-				copyConfigMap(formatConfigMapVSName(cm), ns, &cfg, &cfgMap)
+				copyConfigMap(formatConfigMapVSName(cm), ns, snatPoolName, &cfg, &cfgMap)
 
 				// Checking for annotation in VS, not iApp
 				if cfg.MetaData.ResourceType != "iapp" && cfg.Virtual.VirtualAddress != nil {
@@ -890,7 +905,7 @@ func parseConfigMap(cm *v1.ConfigMap, schemaDBPath string) (*ResourceConfig, err
 	return &cfg, nil
 }
 
-func copyConfigMap(virtualName, ns string, cfg *ResourceConfig, cfgMap *ConfigMap) {
+func copyConfigMap(virtualName, ns, snatPoolName string, cfg *ResourceConfig, cfgMap *ConfigMap) {
 	cmName := strings.Split(virtualName, "_")[1]
 	poolName := formatConfigMapPoolName(ns, cmName, cfgMap.VirtualServer.Backend.ServiceName)
 	if cfgMap.VirtualServer.Frontend.IApp == "" {
@@ -899,7 +914,7 @@ func copyConfigMap(virtualName, ns string, cfg *ResourceConfig, cfgMap *ConfigMa
 		cfg.Virtual.Name = virtualName
 		cfg.Virtual.Partition = cfgMap.VirtualServer.Frontend.Partition
 		cfg.Virtual.Enabled = true
-		cfg.Virtual.SourceAddrTranslation.Type = "automap"
+		cfg.Virtual.SourceAddrTranslation = setSourceAddrTranslation(snatPoolName)
 		cfg.Virtual.PoolName = fmt.Sprintf("/%s/%s", cfg.Virtual.Partition, poolName)
 
 		// If mode not set, use default
@@ -989,7 +1004,8 @@ func (appMgr *Manager) createRSConfigFromIngress(
 	ns string,
 	svcIndexer cache.Indexer,
 	pStruct portStruct,
-	defaultIP string,
+	defaultIP,
+	snatPoolName string,
 ) *ResourceConfig {
 	if class, ok := ing.ObjectMeta.Annotations[k8sIngressClass]; ok == true {
 		if class != "f5" {
@@ -1125,7 +1141,7 @@ func (appMgr *Manager) createRSConfigFromIngress(
 		cfg.MetaData.ResourceType = "ingress"
 		cfg.Virtual.Enabled = true
 		setProfilesForMode("http", &cfg)
-		cfg.Virtual.SourceAddrTranslation.Type = "automap"
+		cfg.Virtual.SourceAddrTranslation = setSourceAddrTranslation(snatPoolName)
 		cfg.Virtual.SetVirtualAddress(bindAddr, pStruct.port)
 		cfg.Pools = append(cfg.Pools, pools...)
 		if plcy != nil {
@@ -1255,6 +1271,7 @@ func (appMgr *Manager) createRSConfigFromRoute(
 	pStruct portStruct,
 	svcIndexer cache.Indexer,
 	svcFwdRulesMap ServiceFwdRuleMap,
+	snatPoolName string,
 ) (*ResourceConfig, error, Pool) {
 	var rsCfg ResourceConfig
 	rsCfg.MetaData.RouteProfs = make(map[routeKey]string)
@@ -1335,7 +1352,7 @@ func (appMgr *Manager) createRSConfigFromRoute(
 		rsCfg.Virtual.Name = rsName
 		rsCfg.Virtual.Enabled = true
 		setProfilesForMode("http", &rsCfg)
-		rsCfg.Virtual.SourceAddrTranslation.Type = "automap"
+		rsCfg.Virtual.SourceAddrTranslation = setSourceAddrTranslation(snatPoolName)
 		rsCfg.Virtual.Partition = DEFAULT_PARTITION
 		bindAddr := ""
 		if routeConfig.RouteVSAddr != "" {

@@ -617,7 +617,7 @@ var _ = Describe("Resource Config Tests", func() {
 					port:     80,
 				}
 				cfg := mockMgr.appMgr.createRSConfigFromIngress(
-					ingress, &Resources{}, namespace, nil, ps, "")
+					ingress, &Resources{}, namespace, nil, ps, "", "")
 				Expect(cfg.Pools[0].Balance).To(Equal("round-robin"))
 				Expect(cfg.Virtual.Partition).To(Equal("velcro"))
 				Expect(cfg.Virtual.VirtualAddress.BindAddr).To(Equal("1.2.3.4"))
@@ -636,7 +636,7 @@ var _ = Describe("Resource Config Tests", func() {
 					port:     100,
 				}
 				cfg = mockMgr.appMgr.createRSConfigFromIngress(
-					ingress, &Resources{}, namespace, nil, ps, "")
+					ingress, &Resources{}, namespace, nil, ps, "", "")
 				Expect(cfg.Pools[0].Balance).To(Equal("foobar"))
 				Expect(cfg.Virtual.VirtualAddress.Port).To(Equal(int32(100)))
 
@@ -645,7 +645,7 @@ var _ = Describe("Resource Config Tests", func() {
 						k8sIngressClass: "notf5",
 					})
 				cfg = mockMgr.appMgr.createRSConfigFromIngress(
-					ingress, &Resources{}, namespace, nil, ps, "")
+					ingress, &Resources{}, namespace, nil, ps, "", "")
 				Expect(cfg).To(BeNil())
 
 				// Use controller default IP
@@ -655,7 +655,7 @@ var _ = Describe("Resource Config Tests", func() {
 						f5VsPartitionAnnotation: "velcro",
 					})
 				cfg = mockMgr.appMgr.createRSConfigFromIngress(
-					defaultIng, &Resources{}, namespace, nil, ps, "5.6.7.8")
+					defaultIng, &Resources{}, namespace, nil, ps, "5.6.7.8", "")
 				Expect(cfg.Virtual.VirtualAddress.BindAddr).To(Equal("5.6.7.8"))
 			})
 
@@ -689,7 +689,7 @@ var _ = Describe("Resource Config Tests", func() {
 				svcFwdRulesMap := NewServiceFwdRuleMap()
 				cfg, _, _ := mockMgr.appMgr.createRSConfigFromRoute(
 					route, getRouteCanonicalServiceName(route),
-					&Resources{}, rc, ps, nil, svcFwdRulesMap)
+					&Resources{}, rc, ps, nil, svcFwdRulesMap, "")
 				Expect(cfg.Virtual.Name).To(Equal("https-ose-vserver"))
 				Expect(cfg.Pools[0].Name).To(Equal("openshift_default_foo"))
 				Expect(cfg.Pools[0].ServiceName).To(Equal("foo"))
@@ -715,7 +715,7 @@ var _ = Describe("Resource Config Tests", func() {
 				}
 				cfg, _, _ = mockMgr.appMgr.createRSConfigFromRoute(
 					route2, getRouteCanonicalServiceName(route2),
-					&Resources{}, rc, ps, nil, svcFwdRulesMap)
+					&Resources{}, rc, ps, nil, svcFwdRulesMap, "")
 				Expect(cfg.Virtual.Name).To(Equal("ose-vserver"))
 				Expect(cfg.Pools[0].Name).To(Equal("openshift_default_bar"))
 				Expect(cfg.Pools[0].ServiceName).To(Equal("bar"))
