@@ -617,11 +617,15 @@ var _ = Describe("Resource Config Tests", func() {
 					port:     80,
 				}
 				cfg := mockMgr.appMgr.createRSConfigFromIngress(
-					ingress, &Resources{}, namespace, nil, ps, "", "")
+					ingress, &Resources{}, namespace, nil, ps, "", "test-snat-pool")
 				Expect(cfg.Pools[0].Balance).To(Equal("round-robin"))
 				Expect(cfg.Virtual.Partition).To(Equal("velcro"))
 				Expect(cfg.Virtual.VirtualAddress.BindAddr).To(Equal("1.2.3.4"))
 				Expect(cfg.Virtual.VirtualAddress.Port).To(Equal(int32(80)))
+				Expect(cfg.Virtual.SourceAddrTranslation).To(Equal(SourceAddrTranslation{
+					Type: "snat",
+					Pool: "test-snat-pool",
+				}))
 
 				ingress = test.NewIngress("ingress", "1", namespace, ingressConfig,
 					map[string]string{
@@ -689,8 +693,12 @@ var _ = Describe("Resource Config Tests", func() {
 				svcFwdRulesMap := NewServiceFwdRuleMap()
 				cfg, _, _ := mockMgr.appMgr.createRSConfigFromRoute(
 					route, getRouteCanonicalServiceName(route),
-					&Resources{}, rc, ps, nil, svcFwdRulesMap, "")
+					&Resources{}, rc, ps, nil, svcFwdRulesMap, "test-snat-pool")
 				Expect(cfg.Virtual.Name).To(Equal("https-ose-vserver"))
+				Expect(cfg.Virtual.SourceAddrTranslation).To(Equal(SourceAddrTranslation{
+					Type: "snat",
+					Pool: "test-snat-pool",
+				}))
 				Expect(cfg.Pools[0].Name).To(Equal("openshift_default_foo"))
 				Expect(cfg.Pools[0].ServiceName).To(Equal("foo"))
 				Expect(cfg.Pools[0].ServicePort).To(Equal(int32(80)))

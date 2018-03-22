@@ -1875,6 +1875,19 @@ var _ = Describe("AppManager Tests", func() {
 				Expect(rs.Virtual.Partition).To(Equal("velcro"))
 				Expect(rs.Virtual.VirtualAddress.BindAddr).To(Equal("10.128.10.240"))
 				Expect(rs.Virtual.VirtualAddress.Port).To(Equal(int32(80)))
+
+				// Normal config map with source address translation set
+				setSourceAddrTranslation := test.NewConfigMap("source_addr_translation", "1", namespace, map[string]string{
+					"schema": schemaUrl,
+					"data":   configmapFoo,
+				})
+				cfg, err = parseConfigMap(setSourceAddrTranslation, mockMgr.appMgr.schemaLocal, "test-snat-pool")
+				Expect(cfg).ToNot(BeNil(), "Config map should exist and contain default mode and balance.")
+				Expect(err).To(BeNil(), "Should not receive errors.")
+				Expect(cfg.Virtual.SourceAddrTranslation).To(Equal(SourceAddrTranslation{
+					Type: "snat",
+					Pool: "test-snat-pool",
+				}))
 			}
 
 			It("properly handles ConfigMap keys - NodePort", func() {
